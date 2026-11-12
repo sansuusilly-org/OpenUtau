@@ -20,7 +20,7 @@ internal sealed class IosAudioOutput : IAudioOutput, IDisposable {
     readonly AVAudioPlayerNode player = new();
     readonly AVAudioFormat format = new(SampleRate, Channels);
     readonly Stopwatch clock = new();
-    readonly List<AVAudioPCMBuffer> buffers = new();
+    readonly List<AVAudioPcmBuffer> buffers = new();
     long pausedBytes;
 
     public IosAudioOutput() {
@@ -47,7 +47,7 @@ internal sealed class IosAudioOutput : IAudioOutput, IDisposable {
         int read;
         while ((read = source.Read(samples, 0, samples.Length)) > 0) {
             var frames = (uint)((read + Channels - 1) / Channels);
-            var buffer = new AVAudioPCMBuffer(format, frames);
+            var buffer = new AVAudioPcmBuffer(format, frames);
             buffer.FrameLength = frames;
             for (var channel = 0; channel < Channels; channel++) {
                 var planar = new float[frames];
