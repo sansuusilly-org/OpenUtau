@@ -40,9 +40,13 @@ internal sealed class IosAudioOutput : IAudioOutput, IDisposable {
     public void Init(ISampleProvider sampleProvider) {
         Stop();
         buffers.Clear();
-        var source = sampleProvider.WaveFormat.SampleRate == SampleRate && sampleProvider.WaveFormat.Channels == Channels
-            ? sampleProvider
-            : sampleProvider.ToStereo().Resample(SampleRate);
+        ISampleProvider source = sampleProvider;
+        if (source.WaveFormat.Channels == 1) {
+            source = source.ToStereo();
+        }
+        if (source.WaveFormat.SampleRate != SampleRate) {
+            source = new WdlResamplingSampleProvider(source, SampleRate);
+        }
         var samples = new float[FramesPerBuffer * Channels];
         int read;
         while ((read = source.Read(samples, 0, samples.Length)) > 0) {
@@ -55,7 +59,8 @@ internal sealed class IosAudioOutput : IAudioOutput, IDisposable {
                     var sampleIndex = frame * Channels + channel;
                     planar[frame] = sampleIndex < read ? samples[sampleIndex] : 0;
                 }
-                Marshal.Copy(planar, 0, buffer.FloatChannelData[channel], planar.Length);
+                var channelData = Marshal.ReadIntPtr(buffer.FloatChannelData, channel * IntPtr.Size);
+                Marshal.Copy(planar, 0, channelData, planar.Length);
             }
             buffers.Add(buffer);
         }
