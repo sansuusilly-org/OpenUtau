@@ -9,6 +9,10 @@ namespace OpenUtau.Core.Util {
     public static class ProcessRunner {
         public static bool DebugSwitch { get; set; }
         public static string Run(string file, string args, ILogger logger, string workDir = null, int timeoutMs = 60000) {
+            if (!PlatformCapabilities.SupportsExternalProcesses) {
+                throw new PlatformNotSupportedException(
+                    "This host does not permit launching external renderer processes.");
+            }
             if (!File.Exists(file)) {
                 throw new FileNotFoundException($"Executable {file} not found.");
             }

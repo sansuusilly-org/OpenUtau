@@ -11,6 +11,7 @@
     <BuildDependency Project="OpenUtau/OpenUtau.csproj" />
   </Project>
   <Project Path="OpenUtau.UiTest/OpenUtau.UiTest.csproj" />
+  <Project Path="OpenUtau.iOS/OpenUtau.iOS.csproj" />
   <Project Path="OpenUtau/OpenUtau.csproj">
     <BuildDependency Project="OpenUtau.Plugin.Builtin/OpenUtau.Plugin.Builtin.csproj" />
   </Project>

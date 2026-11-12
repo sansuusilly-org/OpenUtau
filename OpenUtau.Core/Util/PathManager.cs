@@ -14,6 +14,13 @@ namespace OpenUtau.Core {
 
     public class PathManager : SingletonBase<PathManager> {
         public PathManager() {
+            if (PlatformPaths.Current is IPlatformPaths platformPaths) {
+                RootPath = platformPaths.RootPath;
+                DataPath = platformPaths.DataPath;
+                CachePath = platformPaths.CachePath;
+                HomePathIsAscii = true;
+                return;
+            }
             RootPath = Path.GetDirectoryName(Assembly.GetEntryAssembly().Location);
             if (OS.IsMacOS()) {
                 string userHome = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);

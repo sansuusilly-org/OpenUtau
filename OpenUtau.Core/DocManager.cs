@@ -106,6 +106,10 @@ namespace OpenUtau.Core {
         }
 
         public void SearchAllLegacyPlugins() {
+            if (!PlatformCapabilities.SupportsDynamicPlugins) {
+                Plugins = Array.Empty<Plugin>();
+                return;
+            }
             try {
                 var stopWatch = Stopwatch.StartNew();
                 Plugins = PluginLoader.LoadAll(PathManager.Inst.PluginsPath);
@@ -118,6 +122,10 @@ namespace OpenUtau.Core {
         }
 
         public void SearchAllPlugins() {
+            if (!PlatformCapabilities.SupportsDynamicPlugins) {
+                PhonemizerFactories = Array.Empty<PhonemizerFactory>();
+                return;
+            }
             const string kBuiltin = "OpenUtau.Plugin.Builtin.dll";
             var stopWatch = Stopwatch.StartNew();
             var files = new List<string>();
