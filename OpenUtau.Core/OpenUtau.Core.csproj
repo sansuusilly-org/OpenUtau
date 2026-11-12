@@ -33,7 +33,11 @@
     <PackageReference Include="SharpJaad" Version="0.1.1" />
     <PackageReference Include="SharpJaad.AAC" Version="0.1.1" />
     <PackageReference Include="System.ComponentModel.Annotations" Version="5.0.0" />
-    <PackageReference Include="System.Drawing.Common" Version="10.0.3" />
+    <!-- System.Drawing.Common is desktop-only and brings System.Private.Windows.Core,
+         which cannot be AOT-compiled into an iOS device app. The core source does
+         not reference it directly; retain it for desktop dependency compatibility. -->
+    <PackageReference Include="System.Drawing.Common" Version="10.0.3"
+                      Condition="'$(RuntimeIdentifier)' != 'ios-arm64' and '$(RuntimeIdentifier)' != 'iossimulator-arm64' and '$(RuntimeIdentifier)' != 'iossimulator-x64'" />
     <PackageReference Include="System.IO.Packaging" Version="9.0.2" />
     <PackageReference Include="System.Security.Cryptography.Xml" Version="10.0.11" />
     <PackageReference Include="TextCopy" Version="6.2.1" />
