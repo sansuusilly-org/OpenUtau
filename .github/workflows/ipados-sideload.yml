@@ -1,6 +1,8 @@
 name: iPadOS sideload build
 
 on:
+  push:
+    branches: [mac-test]
   workflow_dispatch:
 
 # This workflow intentionally has no Apple credentials. It produces an arm64
