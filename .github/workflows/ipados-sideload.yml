@@ -60,14 +60,28 @@ jobs:
       - name: Locate and inspect IPA
         if: success()
         run: |
-          ipa=$(find OpenUtau.iOS/bin/Release -name '*.ipa' -type f -print -quit)
-          if [ -z "$ipa" ]; then
-            echo '::error::The iOS publish completed but no IPA was created.'
-            find OpenUtau.iOS/bin/Release -maxdepth 8 -type f | sort
-            exit 1
-          fi
+          output_root=OpenUtau.iOS/bin
+          ipa=$(find "$output_root" -name '*.ipa' -type f -print -quit)
           mkdir -p artifacts
-          cp "$ipa" artifacts/OpenUtau-iPadOS-unsigned.ipa
+          if [ -z "$ipa" ]; then
+            # Some .NET/iOS toolchain versions publish only the device .app.
+            # An IPA is a ZIP whose top-level entry is Payload/<Application>.app.
+            app=$(find "$output_root" -name '*.app' -type d -print -quit)
+            if [ -z "$app" ]; then
+              echo '::error::The iOS publish completed but produced neither an IPA nor an app bundle.'
+              find "$output_root" -maxdepth 10 -print | sort
+              exit 1
+            fi
+            package_dir=$(mktemp -d)
+            mkdir -p "$package_dir/Payload"
+            cp -R "$app" "$package_dir/Payload/"
+            (
+              cd "$package_dir"
+              /usr/bin/zip -qry "$GITHUB_WORKSPACE/artifacts/OpenUtau-iPadOS-unsigned.ipa" Payload
+            )
+          else
+            cp "$ipa" artifacts/OpenUtau-iPadOS-unsigned.ipa
+          fi
           unzip -l artifacts/OpenUtau-iPadOS-unsigned.ipa | tee ipa-contents.log
 
       - name: Upload IPA
@@ -88,6 +102,6 @@ jobs:
             restore.log
             publish.log
             ipa-contents.log
-            OpenUtau.iOS/bin/Release/**
+            OpenUtau.iOS/bin/**
           if-no-files-found: warn
           retention-days: 7
