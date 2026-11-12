@@ -1,0 +1,91 @@
+name: iPadOS sideload build
+
+on:
+  workflow_dispatch:
+
+# This workflow intentionally has no Apple credentials. It produces an arm64
+# development IPA with an ad-hoc signature, which Sideloadly re-signs with the
+# user's Apple Account before installing it on a device.
+permissions:
+  contents: read
+
+jobs:
+  build-ipados-ipa:
+    # macos-15 keeps the hosted Xcode environment stable while we validate the
+    # first device build. The .NET/iOS workload is pinned below for the same reason.
+    runs-on: macos-15
+    timeout-minutes: 45
+
+    steps:
+      - name: Check out mac-test
+        uses: actions/checkout@v4
+        with:
+          ref: mac-test
+
+      - name: Install .NET 10 SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.402
+
+      - name: Select Xcode and record toolchain
+        run: |
+          xcode-select --print-path
+          xcodebuild -version
+          dotnet --info
+
+      - name: Install pinned iOS workload
+        run: |
+          dotnet workload install ios --version 10.0.402.1
+          dotnet workload list
+
+      - name: Restore iPadOS project
+        run: |
+          dotnet restore OpenUtau.iOS/OpenUtau.iOS.csproj --runtime ios-arm64 \
+            2>&1 | tee restore.log
+
+      - name: Publish device app and package re-signable IPA
+        run: |
+          dotnet publish OpenUtau.iOS/OpenUtau.iOS.csproj \
+            --configuration Release \
+            --framework net10.0-ios \
+            --runtime ios-arm64 \
+            --self-contained true \
+            -p:BuildIpa=true \
+            -p:CodesignKey=- \
+            -p:CodesignEntitlements=Entitlements.plist \
+            2>&1 | tee publish.log
+
+      - name: Locate and inspect IPA
+        if: success()
+        run: |
+          ipa=$(find OpenUtau.iOS/bin/Release -name '*.ipa' -type f -print -quit)
+          if [ -z "$ipa" ]; then
+            echo '::error::The iOS publish completed but no IPA was created.'
+            find OpenUtau.iOS/bin/Release -maxdepth 8 -type f | sort
+            exit 1
+          fi
+          mkdir -p artifacts
+          cp "$ipa" artifacts/OpenUtau-iPadOS-unsigned.ipa
+          unzip -l artifacts/OpenUtau-iPadOS-unsigned.ipa | tee ipa-contents.log
+
+      - name: Upload IPA
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: OpenUtau-iPadOS-unsigned
+          path: artifacts/OpenUtau-iPadOS-unsigned.ipa
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Upload diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ipados-build-diagnostics
+          path: |
+            restore.log
+            publish.log
+            ipa-contents.log
+            OpenUtau.iOS/bin/Release/**
+          if-no-files-found: warn
+          retention-days: 7
